@@ -15,7 +15,8 @@ import playsound
 chat_machine = ChatTTS.Chat()
 chat_machine.load(compile=False) 
 
-audio_file = "temp_recording.wav"
+record_file = "temp_recording.wav"
+play_file = "temp_play.wav"
 
 ollama_model = "qwen2:0.5b"
 ollama_url = "http://localhost:11434"
@@ -24,7 +25,6 @@ ar_model_dir = "iic/SenseVoiceSmall"
 ar_model = AutoModel(
     model=ar_model_dir,
     trust_remote_code=True,
-    remote_code="./model.py",
     vad_model="fsmn-vad",
     vad_kwargs={"max_single_segment_time": 30000},
     device="cuda:0",
@@ -89,10 +89,11 @@ def record_audio(file_path, silence_threshold=512, silence_duration=4.0, chunk_s
 def main():
     messages = []
     while True:
-        record_audio(audio_file)
+        playsound.playsound('tone.mp3')
+        record_audio(record_file)
 
         res = ar_model.generate(
-            input=audio_file,
+            input=record_file,
             cache={},
             language="auto",  # "zh", "en", "yue", "ja", "ko", "nospeech"
             use_itn=True,
@@ -108,8 +109,8 @@ def main():
         messages.append({"role": "user", "content": user_input})
         message = chat(messages)
         wavs = chat_machine.infer(message["content"])
-        torchaudio.save("output.wav", torch.from_numpy(wavs[0]), 24000)
-        playsound.playsound("output.wav")
+        torchaudio.save(play_file, torch.from_numpy(wavs[0]), 24000)
+        playsound.playsound(play_file)
         messages.append(message)
         print("\n\n")
         

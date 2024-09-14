@@ -1,4 +1,6 @@
+__pycache__/
 asset/
+
 *.wav
 *.mp3
 *.ogg
