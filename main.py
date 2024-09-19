@@ -15,7 +15,7 @@ import playsound
 chat_machine = ChatTTS.Chat()
 chat_machine.load(compile=False) 
 
-record_file = "temp_recording.wav"
+record_file = "temp_record.wav"
 play_file = "temp_play.wav"
 
 ollama_model = "qwen2:0.5b"
@@ -24,10 +24,11 @@ ollama_url = "http://localhost:11434"
 ar_model_dir = "iic/SenseVoiceSmall"
 ar_model = AutoModel(
     model=ar_model_dir,
-    trust_remote_code=True,
+    # trust_remote_code=True,
+    disable_update=True,
     vad_model="fsmn-vad",
     vad_kwargs={"max_single_segment_time": 30000},
-    device="cuda:0",
+    # device="cuda:0",
 )
 
 def chat(messages):
@@ -45,8 +46,6 @@ def chat(messages):
             message = body.get("message", "")
             content = message.get("content", "")
             output += content
-            # the response streams one token at a time, print that as we receive it
-            print(content, end="", flush=True)
         if body.get("done", False):
             message["content"] = output
             return message
@@ -103,11 +102,10 @@ def main():
         )
         user_input = rich_transcription_postprocess(res[0]["text"])
         print(user_input)
-        if not user_input:
-            exit()
         print()
         messages.append({"role": "user", "content": user_input})
         message = chat(messages)
+        print(message["content"])
         wavs = chat_machine.infer(message["content"])
         torchaudio.save(play_file, torch.from_numpy(wavs[0]), 24000)
         playsound.playsound(play_file)

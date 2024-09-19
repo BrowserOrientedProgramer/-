@@ -1,41 +1,36 @@
-from tool import record_audio
-
 import argparse
 import socket
-import playsound
 
-record_file = "temp_recording.wav"
+import playsound
+from tool import record_audio
+
+record_file = "temp_record.wav"
 play_file = "temp_play.wav"
 
-def send_receive_file(send_file, receive_file, host, port):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
+def main(ip, port):
     while True:
-        playsound.playsound("tone.mp3")
-        record_audio(send_file)
+        # 记录并发送语音
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect((ip, port))
 
-        with open(send_file, 'rb') as f:
-            print(f"正在发送文件: {send_file}...")
-            client_socket.sendall(f.read())
-            client_socket.send(b'EOF')
+        playsound.playsound('tone.mp3')
+        record_audio(record_file)
 
-        print("文件发送完毕!")
+        with open(record_file, 'rb') as f:
+            conn.sendall(f.read())
+        conn.close()
+        print('Send voice data successfully.')
 
-        with open(receive_file, 'wb') as f:
-            print(f"正在接收文件: {receive_file}...")
-            flag = True
-            while flag:
-                data = client_socket.recv(1024)
-                if data.find(b'EOF')!= -1:
-                    flag = False
-                    data = data.decode()[:-3].encode()
+        # 接收并播放语音
+        conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.connect((ip, port))
+        with open(play_file, 'wb') as f:
+            while (data := conn.recv(1024)) != b'':
                 f.write(data)
-            
-        print("文件接收完毕!")
+        conn.close()
+        print('Receive voice data successfully.')
 
-        playsound.playsound(receive_file)
-
-    client_socket.close()
+        playsound.playsound(play_file)
 
 if __name__ == '__main__':
     paser = argparse.ArgumentParser()
@@ -43,5 +38,5 @@ if __name__ == '__main__':
     paser.add_argument('--port', type=int, default=5000, help='Port number of the server')
 
     args = paser.parse_args()
-    send_receive_file(record_file, play_file, args.ip, args.port)
-        
+
+    main(args.ip, args.port)
